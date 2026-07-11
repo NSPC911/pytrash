@@ -6,6 +6,7 @@ Unlike send-to-trash-only libraries, this exposes the full round trip:
     >>> pytrash.recycle(["notes.txt"])
     >>> entries = pytrash.entries()
     >>> pytrash.restore([entries[0]])
+    >>> pytrash.purge(pytrash.entries())   # or pytrash.empty()
 
 Every platform is backed by stdlib + `ctypes` only, no third-party deps.
 """
@@ -34,6 +35,8 @@ __all__ = [
     "recycle",
     "entries",
     "restore",
+    "purge",
+    "empty",
     "main",
     "cli_main",
 ]
@@ -41,7 +44,7 @@ __all__ = [
 bin = RecycleBin()
 
 
-def recycle(items: list[str | os.PathLike]) -> None:
+def recycle(items: list[str]) -> None:
     """Move `items` to the recycle bin. See `RecycleBin.recycle`."""
     bin.recycle(items)
 
@@ -57,6 +60,22 @@ def entries() -> list[TrashEntry]:
 def restore(items: list[TrashEntry]) -> None:
     """Restore `items` from the bin. See `RecycleBin.restore`."""
     bin.restore(items)
+
+
+def purge(items: list[TrashEntry]) -> None:
+    """Permanently delete `items` from the bin. See `RecycleBin.purge`.
+
+    Irreversible: the trashed data is destroyed, not restorable afterwards.
+    """
+    bin.purge(items)
+
+
+def empty() -> None:
+    """Permanently delete everything in the bin. See `RecycleBin.empty`.
+
+    Irreversible.
+    """
+    bin.empty()
 
 
 def main() -> None:

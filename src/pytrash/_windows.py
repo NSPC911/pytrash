@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable
 
 from ._type import TrashEntry
+from ._util import remove_path
 
 # -- SHFileOperationW -----------------------------------------------------
 
@@ -57,7 +58,9 @@ def _filetime_to_dt(ft: int) -> datetime | None:
 
 
 class WindowsRecycleBin:
-    def recycle(self, items: list) -> None:
+    def recycle(self, items: list[str]) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[str]>, got <{type(items).__name__}>")
         paths = [os.path.abspath(os.fspath(i)) for i in items]
         for p in paths:
             if not os.path.lexists(p):
@@ -110,6 +113,9 @@ class WindowsRecycleBin:
         items: list[TrashEntry],
         on_exist: Callable[[Exception], bool] = lambda x: False,
     ) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
         for entry in items:
             info_path = entry._handle
             data_path = self._data_path(info_path)
@@ -136,6 +142,31 @@ class WindowsRecycleBin:
             shutil.move(data_path, dest)
             with contextlib.suppress(OSError):
                 os.remove(info_path)
+
+    def purge(
+        self,
+        items: list[TrashEntry],
+        on_error: Callable[[Exception], bool] = lambda e: False,
+    ) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
+        for entry in items:
+            info_path = entry._handle
+            data_path = self._data_path(info_path)
+            try:
+                # $R (data) before $I (metadata): a failure keeps the pair
+                # listable instead of orphaning the $R blob.
+                remove_path(data_path)
+                remove_path(info_path)
+            except OSError as exc:
+                if not on_error(exc):
+                    raise
+
+    def empty(
+        self, on_error: Callable[[Exception], bool] = lambda e: False
+    ) -> None:
+        self.purge(self.entries(), on_error)
 
     # -- helpers -----------------------------------------------------------
 

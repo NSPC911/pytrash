@@ -24,6 +24,12 @@ bin.entries()
 # restore a file from the bin
 entry = bin.entries()[0]
 bin.restore([entry])
+
+# permanently delete a file from the bin (irreversible!)
+bin.purge([entry])
+
+# permanently delete everything in the bin (irreversible!)
+bin.empty()
 ```
 
 That's it. It doesn't get any simpler than that.
@@ -52,6 +58,8 @@ pytrash trash <file1> <file2> ...  # move files to the bin
 pytrash list                       # list entries in the bin
 pytrash list --json                # list entries in the bin
 pytrash restore <entry1> <entry2> ...  # restore entries from the bin
+pytrash purge <entry1> <entry2> ...    # permanently delete entries (asks first; -y to skip)
+pytrash empty                          # permanently delete everything (asks first; -y to skip)
 ```
 
 This CLI interface is not to be compared with the [`trashy`](https://github.com/oberblastmeister/trashy) CLI, it is Rust, it doesn't have the Python Interpreter overhead. This project aims to provide an easy interface for cross platform bins. The CLI is simply a way to make use of it.

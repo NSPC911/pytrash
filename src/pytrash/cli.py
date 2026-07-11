@@ -5,9 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from os import PathLike
 
-from pytrash import entries, recycle, restore
+from pytrash import empty, entries, purge, recycle, restore
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,10 +50,37 @@ def parse_args() -> argparse.Namespace:
         help="Files to restore (use names from 'list' command)",
     )
 
+    # Purge command (permanent delete of specific items)
+    purge_parser = subparsers.add_parser(
+        "purge", help="Permanently delete files from trash (irreversible)"
+    )
+    purge_parser.add_argument(
+        "files",
+        nargs="+",
+        help="Files to purge (use names from 'list' command)",
+    )
+    purge_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Do not ask for confirmation",
+    )
+
+    # Empty command (permanent delete of everything)
+    empty_parser = subparsers.add_parser(
+        "empty", help="Permanently delete everything in trash (irreversible)"
+    )
+    empty_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Do not ask for confirmation",
+    )
+
     return parser.parse_args()
 
 
-def trash_files(files: list[str | PathLike]) -> None:
+def trash_files(files: list[str]) -> None:
     """Move files to trash."""
     try:
         recycle(files)
@@ -138,16 +164,92 @@ def restore_files(files: list[str]) -> None:
         sys.exit(1)
 
 
+def _confirm(prompt: str) -> bool:
+    """Ask the user to confirm a destructive action."""  # noqa: DOC201
+    try:
+        return input(f"{prompt} [y/N] ").strip().lower() in ("y", "yes")
+    except EOFError:
+        return False
+    except KeyboardInterrupt:
+        return False
+
+
+def purge_files(files: list[str], assume_yes: bool = False) -> None:
+    """Permanently delete matching files from trash."""
+    try:
+        all_entries = entries()
+        to_purge = []
+        for file_pattern in files:
+            matched = [
+                entry
+                for entry in all_entries
+                if (
+                    entry.name == file_pattern
+                    or (
+                        entry.original_path
+                        and entry.original_path.endswith(file_pattern)
+                    )
+                )
+            ]
+            if not matched:
+                print(
+                    f"Warning: No trash entry found for '{file_pattern}'",
+                    file=sys.stderr,
+                )
+                continue
+            to_purge.extend(matched)
+
+        if not to_purge:
+            print("No files matched for purge", file=sys.stderr)
+            return
+
+        if not assume_yes and not _confirm(
+            f"Permanently delete {len(to_purge)} file(s)? This cannot be undone."
+        ):
+            print("Aborted")
+            return
+
+        purge(to_purge)
+        print(f"Purged {len(to_purge)} file(s)")
+    except Exception as e:
+        print(f"Error purging files: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def empty_trash(assume_yes: bool = False) -> None:
+    """Permanently delete everything in trash."""
+    try:
+        count = len(entries())
+        if count == 0:
+            print("No files in trash")
+            return
+        if not assume_yes and not _confirm(
+            f"Permanently delete all {count} file(s)? This cannot be undone."
+        ):
+            print("Aborted")
+            return
+        empty()
+        print(f"Emptied trash ({count} file(s))")
+    except Exception as e:
+        print(f"Error emptying trash: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     """Main CLI entry point."""
     args = parse_args()
 
-    if args.command == "trash":
-        trash_files(args.files)
-    elif args.command == "list" or args.command == "entries":
-        list_files(args.json)
-    elif args.command == "restore":
-        restore_files(args.files)
+    match args.command:
+        case "trash":
+            trash_files(args.files)
+        case "list" | "entries":
+            list_files(args.json)
+        case "restore":
+            restore_files(args.files)
+        case "purge":
+            purge_files(args.files, args.yes)
+        case "empty":
+            empty_trash(args.yes)
 
 
 if __name__ == "__main__":

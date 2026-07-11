@@ -27,6 +27,7 @@ from typing import Callable
 
 from . import _dsstore
 from ._type import TrashEntry
+from ._util import remove_path
 
 
 def _load_objc():  # noqa
@@ -65,6 +66,9 @@ def _error_text(objc, err) -> str:  # noqa
 
 class MacRecycleBin:
     def recycle(self, items: list) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
         objc = _load_objc()
         cls_str = objc.objc_getClass(b"NSString")
         cls_url = objc.objc_getClass(b"NSURL")
@@ -134,9 +138,12 @@ class MacRecycleBin:
         self,
         items: list[TrashEntry],
         on_exist: Callable[[Exception], bool] = lambda x: False,
-        dest: str | os.PathLike | None = None,
+        dest: str | None = None,
     ) -> None:
-        # A restore is just moving the item back out of the trash -- no Finder
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
+        # A restore is just moving the item back out of the trash, no Finder
         # and no Accessibility, only the Full Disk Access that reading the
         # trash already needs. macOS won't hand us the original path, so we
         # restore to `dest` when given, else to `entry.original_path`.
@@ -173,6 +180,29 @@ class MacRecycleBin:
                 shutil.rmtree(target) if os.path.isdir(target) else os.remove(target)
             os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
             shutil.move(src, target)
+
+    def purge(
+        self,
+        items: list[TrashEntry],
+        on_error: Callable[[Exception], bool] = lambda e: False,
+    ) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
+        # macOS has no per-item sidecar (the origin lives in the shared
+        # .DS_Store, keyed by name). Deleting the item leaves a stale ptbL
+        # record behind, which is harmless: it points at a name that is gone.
+        for entry in items:
+            try:
+                remove_path(entry._handle)
+            except OSError as exc:
+                if not on_error(exc):
+                    raise
+
+    def empty(
+        self, on_error: Callable[[Exception], bool] = lambda e: False
+    ) -> None:
+        self.purge(self.entries(), on_error)
 
     # -- helpers -----------------------------------------------------------
 

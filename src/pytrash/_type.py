@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from os import PathLike
 from typing import Callable, Protocol, runtime_checkable
 
 
@@ -42,7 +41,7 @@ class RecycleBinLike(Protocol):
     directly.
     """
 
-    def recycle(self, items: list[str | PathLike]) -> None:
+    def recycle(self, items: list[str]) -> None:
         """Move the given items to the recycle bin.
 
         Args:
@@ -72,5 +71,38 @@ class RecycleBinLike(Protocol):
                 while restoring an item. If it returns `True`, the restore
                 will continue with the next item; if `False` or `None`,
                 the restore will abort and propagate the exception.
+        """
+        ...
+
+    def purge(
+        self,
+        items: list[TrashEntry],
+        on_error: Callable[[Exception], bool] = lambda e: False,
+    ) -> None:
+        """Permanently delete items previously returned by `entries`.
+
+        This is irreversible: the trashed data is destroyed, not moved back.
+        The data payload is removed before its metadata sidecar, so a failure
+        partway through leaves the entry still listable rather than an
+        invisible orphan taking up space.
+
+        Args:
+            items: Entries to delete for good.
+            on_error: Optional callback invoked with any exception raised
+                while purging an item. If it returns `True`, the purge
+                continues with the next item; if `False`, it aborts and
+                propagates the exception.
+        """
+        ...
+
+    def empty(
+        self, on_error: Callable[[Exception], bool] = lambda e: False
+    ) -> None:
+        """Permanently delete everything currently in the recycle bin.
+
+        Convenience for `purge(entries())`. Irreversible.
+
+        Args:
+            on_error: Callback forwarded to `purge`; see there.
         """
         ...

@@ -14,6 +14,7 @@ from typing import Callable
 from urllib.parse import quote, unquote
 
 from ._type import TrashEntry
+from ._util import remove_path
 
 _INFO_EXT = ".trashinfo"
 
@@ -99,6 +100,9 @@ def _unique_name(info_dir: str, files_dir: str, base: str) -> str:
 
 class LinuxRecycleBin:
     def recycle(self, items: list) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
         import shutil
 
         for item in items:
@@ -159,6 +163,9 @@ class LinuxRecycleBin:
         items: list[TrashEntry],
         on_exist: Callable[[Exception], bool] = lambda x: False,
     ) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
         import shutil
 
         for entry in items:
@@ -189,6 +196,33 @@ class LinuxRecycleBin:
                 shutil.rmtree(dest) if os.path.isdir(dest) else os.remove(dest)
             shutil.move(data_path, dest)
             os.remove(info_path)
+
+    def purge(
+        self,
+        items: list[TrashEntry],
+        on_error: Callable[[Exception], bool] = lambda e: False,
+    ) -> None:
+        if not isinstance(items, list):
+            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+
+        for entry in items:
+            info_path = entry._handle
+            trash_dir = os.path.dirname(os.path.dirname(info_path))
+            name = os.path.basename(info_path)[: -len(_INFO_EXT)]
+            data_path = os.path.join(trash_dir, "files", name)
+            try:
+                # Data first: if this fails the entry stays fully listable via
+                # its intact sidecar, rather than becoming an unlistable orphan.
+                remove_path(data_path)
+                remove_path(info_path)
+            except OSError as exc:
+                if not on_error(exc):
+                    raise
+
+    def empty(
+        self, on_error: Callable[[Exception], bool] = lambda e: False
+    ) -> None:
+        self.purge(self.entries(), on_error)
 
     # -- helpers -----------------------------------------------------------
 
