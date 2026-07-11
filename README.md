@@ -41,5 +41,20 @@ TrashEntry(
 
 For now, only the major 3 OSes are supported (Windows, Linux, MacOS). If you want to add support for your OS, feel free to open a PR.
 
+### CLI
+This also includes a CLI for interacting with the recycle bin
+```
+uv tool install pytrash
+```
+
+```
+pytrash trash <file1> <file2> ...  # move files to the bin
+pytrash list                       # list entries in the bin
+pytrash list --json                # list entries in the bin
+pytrash restore <entry1> <entry2> ...  # restore entries from the bin
+```
+
+This CLI interface is not to be compared with the [`trashy`](https://github.com/oberblastmeister/trashy) CLI, it is Rust, it doesn't have the Python Interpreter overhead. This project aims to provide an easy interface for cross platform bins. The CLI is simply a way to make use of it.
+
 ### Like what I do? Check out similar projects
-- [multiarchive](https://github.com/NSPC911/multiarchive): a high level api for handling archives across platforms
+- [multiarchive](https://github.com/NSPC911/multiarchive): a high level api for handling archives across formats

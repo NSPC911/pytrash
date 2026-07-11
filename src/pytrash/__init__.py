@@ -35,6 +35,7 @@ __all__ = [
     "entries",
     "restore",
     "main",
+    "cli_main",
 ]
 
 bin = RecycleBin()
@@ -59,6 +60,14 @@ def restore(items: list[TrashEntry]) -> None:
 
 
 def main() -> None:
+    """Original main function for backward compatibility."""
     for entry in entries():
         when = entry.deleted_at.isoformat() if entry.deleted_at else "?"
         print(f"{when}\t{entry.original_path or entry.name}")
+
+
+def cli_main() -> None:
+    """New CLI entry point with subcommands."""
+    from .cli import main
+
+    main()

@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
-pytrash = "pytrash:main"
+pytrash = "pytrash:cli_main"
 
 [dependency-groups]
 dev = [

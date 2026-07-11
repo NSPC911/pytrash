@@ -8,9 +8,7 @@ directories plus one `.trashinfo` sidecar per item, so no ctypes is needed.
 
 from __future__ import annotations
 
-import contextlib
 import os
-import shutil
 from datetime import datetime
 from typing import Callable
 from urllib.parse import quote, unquote
@@ -101,6 +99,8 @@ def _unique_name(info_dir: str, files_dir: str, base: str) -> str:
 
 class LinuxRecycleBin:
     def recycle(self, items: list) -> None:
+        import shutil
+
         for item in items:
             src = os.path.abspath(os.fspath(item))
             if not os.path.lexists(src):
@@ -138,9 +138,10 @@ class LinuxRecycleBin:
                 original, deleted_at = data
                 name = entry[: -len(_INFO_EXT)]
                 data_path = os.path.join(files_dir, name)
-                size = None
-                with contextlib.suppress(OSError):
+                try:
                     size = os.path.getsize(data_path)
+                except OSError:
+                    size = None
                 out.append(
                     TrashEntry(
                         name=name,
@@ -158,6 +159,8 @@ class LinuxRecycleBin:
         items: list[TrashEntry],
         on_exist: Callable[[Exception], bool] = lambda x: False,
     ) -> None:
+        import shutil
+
         for entry in items:
             info_path = entry._handle
             trash_dir = os.path.dirname(os.path.dirname(info_path))
