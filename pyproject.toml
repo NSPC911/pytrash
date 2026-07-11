@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "NSPC911", email = "87571998+NSPC911@users.noreply.github.com" }
+  { name = "NSPC911", email = "87571998+NSPC911@users.noreply.github.com" }
 ]
 requires-python = ">=3.12"
 dependencies = []
