@@ -101,7 +101,9 @@ def _unique_name(info_dir: str, files_dir: str, base: str) -> str:
 class LinuxRecycleBin:
     def recycle(self, items: list) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         import shutil
 
@@ -164,7 +166,9 @@ class LinuxRecycleBin:
         on_exist: Callable[[Exception], bool] = lambda x: False,
     ) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         import shutil
 
@@ -203,7 +207,9 @@ class LinuxRecycleBin:
         on_error: Callable[[Exception], bool] = lambda e: False,
     ) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         for entry in items:
             info_path = entry._handle
@@ -219,9 +225,7 @@ class LinuxRecycleBin:
                 if not on_error(exc):
                     raise
 
-    def empty(
-        self, on_error: Callable[[Exception], bool] = lambda e: False
-    ) -> None:
+    def empty(self, on_error: Callable[[Exception], bool] = lambda e: False) -> None:
         self.purge(self.entries(), on_error)
 
     # -- helpers -----------------------------------------------------------

@@ -67,7 +67,9 @@ def _error_text(objc, err) -> str:  # noqa
 class MacRecycleBin:
     def recycle(self, items: list) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         objc = _load_objc()
         cls_str = objc.objc_getClass(b"NSString")
@@ -141,7 +143,9 @@ class MacRecycleBin:
         dest: str | None = None,
     ) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         # A restore is just moving the item back out of the trash, no Finder
         # and no Accessibility, only the Full Disk Access that reading the
@@ -187,7 +191,9 @@ class MacRecycleBin:
         on_error: Callable[[Exception], bool] = lambda e: False,
     ) -> None:
         if not isinstance(items, list):
-            raise TypeError(f"expected <list[TrashEntry]>, got <{type(items).__name__}>")
+            raise TypeError(
+                f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
+            )
 
         # macOS has no per-item sidecar (the origin lives in the shared
         # .DS_Store, keyed by name). Deleting the item leaves a stale ptbL
@@ -199,9 +205,7 @@ class MacRecycleBin:
                 if not on_error(exc):
                     raise
 
-    def empty(
-        self, on_error: Callable[[Exception], bool] = lambda e: False
-    ) -> None:
+    def empty(self, on_error: Callable[[Exception], bool] = lambda e: False) -> None:
         self.purge(self.entries(), on_error)
 
     # -- helpers -----------------------------------------------------------

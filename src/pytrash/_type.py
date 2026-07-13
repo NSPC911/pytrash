@@ -95,9 +95,7 @@ class RecycleBinLike(Protocol):
         """
         ...
 
-    def empty(
-        self, on_error: Callable[[Exception], bool] = lambda e: False
-    ) -> None:
+    def empty(self, on_error: Callable[[Exception], bool] = lambda e: False) -> None:
         """Permanently delete everything currently in the recycle bin.
 
         Convenience for `purge(entries())`. Irreversible.
