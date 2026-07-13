@@ -14,7 +14,7 @@ from typing import Callable
 from urllib.parse import quote, unquote
 
 from ._type import TrashEntry
-from ._util import remove_path
+from ._util import remove_path, source_path
 
 _INFO_EXT = ".trashinfo"
 
@@ -106,7 +106,7 @@ class LinuxRecycleBin:
         import shutil
 
         for item in items:
-            src = os.path.abspath(os.fspath(item))
+            src = source_path(item)
             if not os.path.lexists(src):
                 raise FileNotFoundError(src)
 

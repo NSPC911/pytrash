@@ -6,6 +6,23 @@ import os
 import shutil
 
 
+def source_path(item: object) -> str:
+    """Absolute path of an item being recycled.
+
+    Returns:
+        `item` as an absolute path.
+
+    Raises:
+        ValueError: if `item` is the empty path, which `abspath` would
+            otherwise resolve to the current working directory -- recycling
+            the cwd instead of failing.
+    """
+    raw = os.fspath(item)  # ty: ignore[invalid-argument-type]
+    if not raw:
+        raise ValueError("cannot recycle an empty path")
+    return os.path.abspath(raw)
+
+
 def remove_path(path: str) -> None:
     """Permanently delete `path`, whatever it is.
 

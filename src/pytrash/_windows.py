@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable
 
 from ._type import TrashEntry
-from ._util import remove_path
+from ._util import remove_path, source_path
 
 # -- SHFileOperationW -----------------------------------------------------
 
@@ -61,7 +61,7 @@ class WindowsRecycleBin:
     def recycle(self, items: list[str]) -> None:
         if not isinstance(items, list):
             raise TypeError(f"expected <list[str]>, got <{type(items).__name__}>")
-        paths = [os.path.abspath(os.fspath(i)) for i in items]
+        paths = [source_path(i) for i in items]
         for p in paths:
             if not os.path.lexists(p):
                 raise FileNotFoundError(p)

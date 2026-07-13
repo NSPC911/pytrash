@@ -27,7 +27,7 @@ from typing import Callable
 
 from . import _dsstore
 from ._type import TrashEntry
-from ._util import remove_path
+from ._util import remove_path, source_path
 
 
 def _load_objc():  # noqa
@@ -77,7 +77,7 @@ class MacRecycleBin:
         fm = _msg(objc, cls_fm, "defaultManager", ctypes.c_void_p, [])
 
         for item in items:
-            path = os.path.abspath(os.fspath(item))
+            path = source_path(item)
             if not os.path.lexists(path):
                 raise FileNotFoundError(path)
 
