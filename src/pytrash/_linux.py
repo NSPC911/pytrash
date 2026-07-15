@@ -148,12 +148,17 @@ class LinuxRecycleBin:
                     size = os.path.getsize(data_path)
                 except OSError:
                     size = None
+                try:
+                    is_dir = os.path.isdir(data_path)
+                except OSError:
+                    is_dir = False
                 out.append(
                     TrashEntry(
                         name=name,
                         original_path=original,
                         deleted_at=deleted_at,
                         size=size,
+                        is_dir=is_dir,
                         _handle=info_path,
                     )
                 )

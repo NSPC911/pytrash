@@ -28,6 +28,9 @@ class TrashEntry:
     size: int | None = None
     """Size in bytes of the original item, if known."""
 
+    is_dir: bool = False
+    """Whether the trashed item was a directory (True) or a file (False)."""
+
     _handle: str = field(default="", repr=False)
     """Backend-private locator for the trashed data. Not part of the API."""
 

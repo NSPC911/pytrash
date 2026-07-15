@@ -96,12 +96,18 @@ class WindowsRecycleBin:
                 if parsed is None:
                     continue
                 original, size, deleted_at = parsed
+                data_path = self._data_path(info_path)
+                try:
+                    is_dir = os.path.isdir(data_path)
+                except OSError:
+                    is_dir = False
                 out.append(
                     TrashEntry(
                         name=os.path.basename(original),
                         original_path=original,
                         deleted_at=deleted_at,
                         size=size,
+                        is_dir=is_dir,
                         _handle=info_path,
                     )
                 )

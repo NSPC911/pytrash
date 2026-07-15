@@ -105,6 +105,7 @@ def list_files(json_output: bool = False) -> None:
                     if entry.deleted_at
                     else None,
                     "size": entry.size,
+                    "is_dir": entry.is_dir,
                 }
                 entries_dict.append(entry_dict)
             print(json.dumps(entries_dict, indent=2))
@@ -116,7 +117,8 @@ def list_files(json_output: bool = False) -> None:
             for entry in trash_entries:
                 when = entry.deleted_at.isoformat() if entry.deleted_at else "?"
                 original = entry.original_path or "?"
-                print(f"{when}\t{original}\t{entry.name}")
+                dir_marker = "[DIR] " if entry.is_dir else "      "
+                print(f"{when}\t{dir_marker}{original}\t{entry.name}")
     except Exception as e:
         print(f"Error listing files: {e}", file=sys.stderr)
         sys.exit(1)

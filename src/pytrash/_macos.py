@@ -21,6 +21,7 @@ import ctypes
 import ctypes.util
 import os
 import shutil
+import stat
 import struct
 from datetime import datetime
 from typing import Callable
@@ -257,12 +258,14 @@ class MacRecycleBin:
                 st = os.lstat(full)
             except OSError:
                 continue
+            is_dir = stat.S_ISDIR(st.st_mode)
             out.append(
                 TrashEntry(
                     name=name,
                     original_path=put_back.get(name),
                     deleted_at=datetime.fromtimestamp(st.st_mtime),
                     size=st.st_size,
+                    is_dir=is_dir,
                     _handle=full,
                 )
             )

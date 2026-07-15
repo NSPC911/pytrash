@@ -82,7 +82,8 @@ def main() -> None:
     """Original main function for backward compatibility."""
     for entry in entries():
         when = entry.deleted_at.isoformat() if entry.deleted_at else "?"
-        print(f"{when}\t{entry.original_path or entry.name}")
+        dir_marker = "[DIR] " if entry.is_dir else "      "
+        print(f"{when}\t{dir_marker}{entry.original_path or entry.name}")
 
 
 def cli_main() -> None:
