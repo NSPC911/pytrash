@@ -243,7 +243,7 @@ class MacRecycleBin:
             raise PermissionError(
                 f"cannot read {trash}: {exc.strerror}. Grant Full Disk Access "
                 "to the app running this (System Settings > Privacy & "
-                "Security > Full Disk Access), then restart it."
+                "Security > Full Disk Access), then restart the terminal."
             ) from exc
         except OSError:
             return out
