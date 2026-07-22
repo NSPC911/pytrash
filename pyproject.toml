@@ -1,6 +1,6 @@
 [project]
 name = "pytrash"
-version = "0.3.3"
+version = "0.3.4"
 description = "a high level api for handling recycle bins across platforms"
 readme = "README.md"
 license = "MIT"
@@ -8,7 +8,7 @@ license-files = [ "LICENSE" ]
 authors = [
   { name = "NSPC911", email = "87571998+NSPC911@users.noreply.github.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = []
 keywords = ["recycle bin", "trash", "recycle", "bin", "trash-rs"]
 
