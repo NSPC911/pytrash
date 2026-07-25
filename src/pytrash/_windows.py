@@ -81,7 +81,7 @@ class WindowsRecycleBin:
         if op.fAnyOperationsAborted:
             raise OSError("recycle operation was aborted")
 
-    def entries(self) -> list[TrashEntry]:
+    def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
         out: list[TrashEntry] = []
         for sid_dir in self._sid_dirs():
             try:
@@ -101,6 +101,15 @@ class WindowsRecycleBin:
                     # Drop stale metadata entries that no longer have payload.
                     with contextlib.suppress(OSError):
                         os.remove(info_path)
+                    continue
+                if recursive and os.path.isdir(data_path):
+                    out.extend(
+                        self._dir_entries(
+                            data_path=data_path,
+                            original=original,
+                            deleted_at=deleted_at,
+                        )
+                    )
                     continue
                 try:
                     is_dir = os.path.isdir(data_path)
@@ -130,8 +139,7 @@ class WindowsRecycleBin:
             )
 
         for entry in items:
-            info_path = entry._handle
-            data_path = self._data_path(info_path)
+            info_path, data_path = self._paths_from_handle(entry._handle)
             if not os.path.lexists(data_path):
                 exc = FileNotFoundError(
                     f"trashed data missing for {entry.name!r}: {data_path}"
@@ -153,8 +161,9 @@ class WindowsRecycleBin:
             if os.path.lexists(dest):
                 shutil.rmtree(dest) if os.path.isdir(dest) else os.remove(dest)
             shutil.move(data_path, dest)
-            with contextlib.suppress(OSError):
-                os.remove(info_path)
+            if info_path is not None:
+                with contextlib.suppress(OSError):
+                    os.remove(info_path)
 
     def purge(
         self,
@@ -167,13 +176,13 @@ class WindowsRecycleBin:
             )
 
         for entry in items:
-            info_path = entry._handle
-            data_path = self._data_path(info_path)
+            info_path, data_path = self._paths_from_handle(entry._handle)
             try:
                 # $R (data) before $I (metadata): a failure keeps the pair
                 # listable instead of orphaning the $R blob.
                 remove_path(data_path)
-                remove_path(info_path)
+                if info_path is not None:
+                    remove_path(info_path)
             except OSError as exc:
                 if not on_error(exc):
                     raise
@@ -187,6 +196,40 @@ class WindowsRecycleBin:
     def _data_path(info_path: str) -> str:
         d, name = os.path.split(info_path)
         return os.path.join(d, "$R" + name[2:])
+
+    @staticmethod
+    def _paths_from_handle(handle: str) -> tuple[str | None, str]:
+        if os.path.basename(handle).startswith("$I"):
+            return handle, WindowsRecycleBin._data_path(handle)
+        return None, handle
+
+    @staticmethod
+    def _dir_entries(
+        *, data_path: str, original: str, deleted_at: datetime | None
+    ) -> list[TrashEntry]:
+        out: list[TrashEntry] = []
+        root_name = os.path.basename(original) or os.path.basename(data_path)
+        for dirpath, _, filenames in os.walk(data_path):
+            for filename in filenames:
+                child_data = os.path.join(dirpath, filename)
+                rel = os.path.relpath(child_data, data_path)
+                child_original = os.path.join(original, rel)
+                child_name = os.path.join(root_name, rel)
+                try:
+                    size = os.path.getsize(child_data)
+                except OSError:
+                    size = None
+                out.append(
+                    TrashEntry(
+                        name=child_name,
+                        original_path=child_original,
+                        deleted_at=deleted_at,
+                        size=size,
+                        is_dir=False,
+                        _handle=child_data,
+                    )
+                )
+        return out
 
     def _sid_dirs(self) -> list[str]:
         sid = self._current_sid()

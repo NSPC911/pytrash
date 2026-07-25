@@ -49,12 +49,16 @@ def recycle(items: list[str]) -> None:
     bin.recycle(items)
 
 
-def entries() -> list[TrashEntry]:
+def entries(*, recursive: bool = False) -> list[TrashEntry]:
     """List the recycle bin. See `RecycleBin.entries`.
+
+    Args:
+        recursive: When `True`, include nested items from trashed folders where
+            supported by the backend.
 
     Returns:
         A list of `TrashEntry"""
-    return bin.entries()
+    return bin.entries(recursive=recursive)
 
 
 def restore(items: list[TrashEntry]) -> None:

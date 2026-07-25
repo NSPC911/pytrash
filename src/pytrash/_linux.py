@@ -127,7 +127,8 @@ class LinuxRecycleBin:
                 )
             shutil.move(src, os.path.join(files_dir, name))
 
-    def entries(self) -> list[TrashEntry]:
+    def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
+        del recursive
         out: list[TrashEntry] = []
         for trash_dir in self._all_trash_dirs():
             info_dir = os.path.join(trash_dir, "info")

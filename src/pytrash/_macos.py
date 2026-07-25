@@ -114,7 +114,8 @@ class MacRecycleBin:
             if not ok:
                 raise OSError(f"failed to trash {path!r}: {_error_text(objc, err)}")
 
-    def entries(self) -> list[TrashEntry]:
+    def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
+        del recursive
         out: list[TrashEntry] = []
         # Home trash is authoritative: surface a TCC/permission failure here
         # rather than pretending the Trash is empty.

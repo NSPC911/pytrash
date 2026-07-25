@@ -32,6 +32,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Output as JSON",
     )
+    list_parser.add_argument(
+        "--recursive",
+        "-r",
+        action="store_true",
+        help="Recursively list files inside trashed folders",
+    )
 
     # Entries command (alias for list)
     entries_parser = subparsers.add_parser("entries", help="List trashed files")
@@ -40,6 +46,12 @@ def parse_args() -> argparse.Namespace:
         "-j",
         action="store_true",
         help="Output as JSON",
+    )
+    entries_parser.add_argument(
+        "--recursive",
+        "-r",
+        action="store_true",
+        help="Recursively list files inside trashed folders",
     )
 
     # Restore command
@@ -90,10 +102,10 @@ def trash_files(files: list[str]) -> None:
         sys.exit(1)
 
 
-def list_files(json_output: bool = False) -> None:
+def list_files(json_output: bool = False, recursive: bool = False) -> None:
     """List files in trash."""
     try:
-        trash_entries = entries()
+        trash_entries = entries(recursive=recursive)
         if json_output:
             # Convert TrashEntry objects to dict for JSON serialization
             entries_dict = []
@@ -245,7 +257,7 @@ def main() -> None:
         case "trash":
             trash_files(args.files)
         case "list" | "entries":
-            list_files(args.json)
+            list_files(args.json, args.recursive)
         case "restore":
             restore_files(args.files)
         case "purge":

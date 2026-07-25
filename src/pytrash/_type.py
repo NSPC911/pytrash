@@ -52,8 +52,12 @@ class RecycleBinLike(Protocol):
         """
         ...
 
-    def entries(self) -> list[TrashEntry]:
+    def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
         """List everything currently in the recycle bin.
+
+        Args:
+            recursive: When `True`, backends may return items nested inside
+                trashed directories instead of only top-level trashed items.
 
         Returns:
             The trashed items, most-recently-deleted first where the platform

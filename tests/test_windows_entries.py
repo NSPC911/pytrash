@@ -50,3 +50,35 @@ def test_entries_keeps_valid_pair(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
     assert entry.size == 42
     assert entry._handle == str(info)
     assert info.exists()
+
+
+def test_entries_recursive_lists_files_inside_trashed_folder(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    sid_dir = tmp_path / "S-1-5-21-test"
+    sid_dir.mkdir()
+    info = sid_dir / "$IABCDEF"
+    data = sid_dir / "$RABCDEF"
+    original = tmp_path / "work" / "project"
+    _write_i_file(info, str(original), size=0)
+    (data / "src").mkdir(parents=True)
+    (data / "README.md").write_text("readme")
+    (data / "src" / "main.py").write_text("print()")
+
+    bin = WindowsRecycleBin()
+    monkeypatch.setattr(WindowsRecycleBin, "_sid_dirs", lambda self: [str(sid_dir)])
+
+    entries = sorted(bin.entries(recursive=True), key=lambda entry: entry.name)
+
+    assert [entry.name for entry in entries] == [
+        "project\\README.md",
+        "project\\src\\main.py",
+    ]
+    assert [entry.original_path for entry in entries] == [
+        str(original / "README.md"),
+        str(original / "src" / "main.py"),
+    ]
+    assert [entry._handle for entry in entries] == [
+        str(data / "README.md"),
+        str(data / "src" / "main.py"),
+    ]
