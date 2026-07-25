@@ -97,6 +97,11 @@ class WindowsRecycleBin:
                     continue
                 original, size, deleted_at = parsed
                 data_path = self._data_path(info_path)
+                if not os.path.lexists(data_path):
+                    # Drop stale metadata entries that no longer have payload.
+                    with contextlib.suppress(OSError):
+                        os.remove(info_path)
+                    continue
                 try:
                     is_dir = os.path.isdir(data_path)
                 except OSError:
