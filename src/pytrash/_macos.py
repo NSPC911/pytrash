@@ -24,7 +24,7 @@ import shutil
 import stat
 import struct
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Literal, overload
 
 from . import _dsstore
 from ._type import TrashEntry
@@ -66,7 +66,20 @@ def _error_text(objc, err) -> str:  # noqa
 
 
 class MacRecycleBin:
-    def recycle(self, items: list) -> None:
+    @overload
+    def recycle(self, items: list[str]) -> None: ...
+
+    @overload
+    def recycle(
+        self, items: list[str], return_entries: Literal[True]
+    ) -> list[TrashEntry]: ...
+
+    @overload
+    def recycle(self, items: list[str], return_entries: Literal[False]) -> None: ...
+
+    def recycle(
+        self, items: list, return_entries: bool = False
+    ) -> list[TrashEntry] | None:
         if not isinstance(items, list):
             raise TypeError(
                 f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
@@ -79,6 +92,7 @@ class MacRecycleBin:
 
         fm = _msg(objc, cls_fm, "defaultManager", ctypes.c_void_p, [])
 
+        out: list[TrashEntry] = []
         for item in items:
             path = source_path(item)
             if not os.path.lexists(path):
@@ -101,6 +115,7 @@ class MacRecycleBin:
                 ns_path,
             )
             err = ctypes.c_void_p(0)
+            resulting_url = ctypes.c_void_p(0)
             ok = _msg(
                 objc,
                 fm,
@@ -108,11 +123,33 @@ class MacRecycleBin:
                 ctypes.c_bool,
                 [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p],
                 url,
-                None,
+                ctypes.byref(resulting_url) if return_entries else None,
                 ctypes.byref(err),
             )
             if not ok:
                 raise OSError(f"failed to trash {path!r}: {_error_text(objc, err)}")
+            if return_entries:
+                ns_result_path = _msg(objc, resulting_url, "path", ctypes.c_void_p, [])
+                data_path = os.fsdecode(
+                    _msg(
+                        objc,
+                        ns_result_path,
+                        "fileSystemRepresentation",
+                        ctypes.c_char_p,
+                        [],
+                    )
+                )
+                out.append(
+                    TrashEntry(
+                        name=os.path.basename(data_path),
+                        original_path=path,
+                        deleted_at=datetime.now(),
+                        size=os.lstat(data_path).st_size,
+                        is_dir=os.path.isdir(data_path),
+                        _handle=data_path,
+                    )
+                )
+        return out if return_entries else None
 
     def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
         del recursive

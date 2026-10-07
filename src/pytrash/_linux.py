@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Literal, overload
 from urllib.parse import quote, unquote
 
 from ._type import TrashEntry
@@ -99,7 +99,20 @@ def _unique_name(info_dir: str, files_dir: str, base: str) -> str:
 
 
 class LinuxRecycleBin:
-    def recycle(self, items: list) -> None:
+    @overload
+    def recycle(self, items: list[str]) -> None: ...
+
+    @overload
+    def recycle(
+        self, items: list[str], return_entries: Literal[True]
+    ) -> list[TrashEntry]: ...
+
+    @overload
+    def recycle(self, items: list[str], return_entries: Literal[False]) -> None: ...
+
+    def recycle(
+        self, items: list, return_entries: bool = False
+    ) -> list[TrashEntry] | None:
         if not isinstance(items, list):
             raise TypeError(
                 f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
@@ -107,6 +120,7 @@ class LinuxRecycleBin:
 
         import shutil
 
+        out: list[TrashEntry] = []
         for item in items:
             src = source_path(item)
             if not os.path.lexists(src):
@@ -126,6 +140,19 @@ class LinuxRecycleBin:
                     f"[Trash Info]\nPath={quote(src)}\nDeletionDate={deleted_at}\n"
                 )
             shutil.move(src, os.path.join(files_dir, name))
+            if return_entries:
+                data_path = os.path.join(files_dir, name)
+                out.append(
+                    TrashEntry(
+                        name=name,
+                        original_path=src,
+                        deleted_at=datetime.fromisoformat(deleted_at),
+                        size=os.lstat(data_path).st_size,
+                        is_dir=os.path.isdir(data_path),
+                        _handle=info_path,
+                    )
+                )
+        return out if return_entries else None
 
     def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
         del recursive

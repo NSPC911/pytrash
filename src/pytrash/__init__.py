@@ -44,9 +44,13 @@ __all__ = [
 bin = RecycleBin()
 
 
-def recycle(items: list[str]) -> None:
-    """Move `items` to the recycle bin. See `RecycleBin.recycle`."""
-    bin.recycle(items)
+def recycle(items: list[str], return_entries: bool = False) -> list[TrashEntry] | None:
+    """Move `items` to the bin; optionally return entries for restoring them.
+
+    Returns:
+        Newly recycled entries when `return_entries=True`, otherwise `None`.
+    """
+    return bin.recycle(items, return_entries=return_entries)
 
 
 def entries(*, recursive: bool = False) -> list[TrashEntry]:

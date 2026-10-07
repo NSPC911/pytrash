@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Protocol, runtime_checkable
+from typing import Callable, Literal, Protocol, overload, runtime_checkable
 
 
 @dataclass(frozen=True)
@@ -44,11 +44,28 @@ class RecycleBinLike(Protocol):
     directly.
     """
 
-    def recycle(self, items: list[str]) -> None:
+    @overload
+    def recycle(self, items: list[str]) -> None: ...
+
+    @overload
+    def recycle(
+        self, items: list[str], return_entries: Literal[True]
+    ) -> list[TrashEntry]: ...
+
+    @overload
+    def recycle(self, items: list[str], return_entries: Literal[False]) -> None: ...
+
+    def recycle(
+        self, items: list[str], return_entries: bool = False
+    ) -> list[TrashEntry] | None:
         """Move the given items to the recycle bin.
 
         Args:
             items: File or directory paths to recycle.
+            return_entries: Return the newly recycled entries when `True`.
+
+        Returns:
+            Entries suitable for `restore` when requested, otherwise `None`.
         """
         ...
 

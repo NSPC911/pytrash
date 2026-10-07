@@ -20,7 +20,7 @@ import shutil
 import struct
 from ctypes import wintypes
 from datetime import datetime, timedelta, timezone
-from typing import Callable
+from typing import Callable, Literal, overload
 
 from ._type import TrashEntry
 from ._util import remove_path, source_path
@@ -58,13 +58,31 @@ def _filetime_to_dt(ft: int) -> datetime | None:
 
 
 class WindowsRecycleBin:
-    def recycle(self, items: list[str]) -> None:
+    @overload
+    def recycle(self, items: list[str]) -> None: ...
+
+    @overload
+    def recycle(
+        self, items: list[str], return_entries: Literal[True]
+    ) -> list[TrashEntry]: ...
+
+    @overload
+    def recycle(self, items: list[str], return_entries: Literal[False]) -> None: ...
+
+    def recycle(
+        self, items: list[str], return_entries: bool = False
+    ) -> list[TrashEntry] | None:
         if not isinstance(items, list):
             raise TypeError(f"expected <list[str]>, got <{type(items).__name__}>")
         paths = [source_path(i) for i in items]
         for p in paths:
             if not os.path.lexists(p):
                 raise FileNotFoundError(p)
+        if not paths:
+            return [] if return_entries else None
+        before = (
+            {entry._handle for entry in self.entries()} if return_entries else set()
+        )
         # pFrom is a double-null-terminated, null-separated list.
         buf = "\0".join(paths) + "\0\0"
 
@@ -80,6 +98,17 @@ class WindowsRecycleBin:
             raise OSError(f"SHFileOperation failed (code 0x{rc:X})")
         if op.fAnyOperationsAborted:
             raise OSError("recycle operation was aborted")
+        if return_entries:
+            originals = {os.path.normcase(path) for path in paths}
+            # ponytail: two bin scans; use IFileOperation's sink if scan cost matters.
+            return [
+                entry
+                for entry in self.entries()
+                if entry._handle not in before
+                and entry.original_path is not None
+                and os.path.normcase(entry.original_path) in originals
+            ]
+        return None
 
     def entries(self, *, recursive: bool = False) -> list[TrashEntry]:
         out: list[TrashEntry] = []

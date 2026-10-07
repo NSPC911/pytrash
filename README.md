@@ -18,6 +18,11 @@ bin = pytrash.RecycleBin()
 # move a file to the bin
 bin.recycle(["path/to/file.txt"])
 
+# recycle and keep entries to restore these exact items later
+recycled = pytrash.recycle(["path/to/another.txt"], return_entries=True)
+pytrash.restore(recycled)
+# bin.recycle(..., return_entries=True) works the same way
+
 # list entries
 bin.entries()
 
