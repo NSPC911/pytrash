@@ -9,6 +9,7 @@ import pytest
 if sys.platform != "win32":  # pragma: no cover - backend is per-OS
     pytest.skip("windows backend", allow_module_level=True)
 
+from pytrash import RestoreConflictError
 from pytrash._windows import WindowsRecycleBin
 
 
@@ -19,7 +20,9 @@ def _write_i_file(path: Path, original: str, size: int = 1) -> None:
     path.write_bytes(blob)
 
 
-def test_entries_drops_orphaned_info_sidecar(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_entries_drops_orphaned_info_sidecar(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sid_dir = tmp_path / "S-1-5-21-test"
     sid_dir.mkdir()
     info = sid_dir / "$IABCDEF"
@@ -32,7 +35,9 @@ def test_entries_drops_orphaned_info_sidecar(monkeypatch: pytest.MonkeyPatch, tm
     assert not info.exists()
 
 
-def test_entries_keeps_valid_pair(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_entries_keeps_valid_pair(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sid_dir = tmp_path / "S-1-5-21-test"
     sid_dir.mkdir()
     info = sid_dir / "$IABCDEF"
@@ -50,6 +55,33 @@ def test_entries_keeps_valid_pair(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
     assert entry.size == 42
     assert entry._handle == str(info)
     assert info.exists()
+
+
+def test_restore_merges_only_after_conflicts_are_resolved(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    sid_dir = tmp_path / "S-1-5-21-test"
+    sid_dir.mkdir()
+    info = sid_dir / "$IABCDEF"
+    data = sid_dir / "$RABCDEF"
+    original = tmp_path / "work" / "project"
+    _write_i_file(info, str(original), size=0)
+    data.mkdir()
+    (data / "child").write_text("trashed")
+    original.mkdir(parents=True)
+    (original / "child").write_text("live")
+    bin = WindowsRecycleBin()
+    monkeypatch.setattr(WindowsRecycleBin, "_sid_dirs", lambda self: [str(sid_dir)])
+    with pytest.raises(RestoreConflictError) as caught:
+        bin.restore(bin.entries())
+    assert caught.value.paths == [str(original / "child")]
+    assert info.exists() and (data / "child").exists()
+    (original / "child").unlink()
+    (original / "keep").write_text("keep")
+    bin.restore(bin.entries())
+    assert (original / "child").read_text() == "trashed"
+    assert (original / "keep").read_text() == "keep"
+    assert not info.exists() and not data.exists()
 
 
 def test_entries_recursive_lists_files_inside_trashed_folder(

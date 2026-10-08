@@ -91,10 +91,12 @@ class RecycleBinLike(Protocol):
 
         Args:
             items: Entries to move back to their original locations.
-            on_error: Optional callback invoked with any exception raised
-                while restoring an item. If it returns `True`, the restore
-                will continue with the next item; if `False` or `None`,
-                the restore will abort and propagate the exception.
+            on_exist: Optional callback allowing replacement of conflicting
+                paths when it returns `True`. By default, all destinations
+                are checked before anything moves and conflicts raise a
+                `RestoreConflictError` with a `paths` list. Real directories
+                merge recursively. Runtime failures can leave a partial
+                restore; unmoved contents retain their trash metadata.
         """
         ...
 

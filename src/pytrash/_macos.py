@@ -20,7 +20,6 @@ from __future__ import annotations
 import ctypes
 import ctypes.util
 import os
-import shutil
 import stat
 import struct
 from datetime import datetime
@@ -28,7 +27,7 @@ from typing import Callable, Literal, overload
 
 from . import _dsstore
 from ._type import TrashEntry
-from ._util import remove_path, source_path
+from ._util import remove_path, restore_paths, source_path
 
 
 def _load_objc():  # noqa
@@ -190,6 +189,7 @@ class MacRecycleBin:
         # and no Accessibility, only the Full Disk Access that reading the
         # trash already needs. macOS won't hand us the original path, so we
         # restore to `dest` when given, else to `entry.original_path`.
+        pairs = []
         for entry in items:
             src = entry._handle
             if dest is not None:
@@ -213,16 +213,8 @@ class MacRecycleBin:
                 if not on_exist(exc):
                     raise exc
                 continue
-            if os.path.lexists(target):
-                exc = FileExistsError(
-                    f"cannot restore {entry.name!r}: {target} already exists"
-                )
-                if not on_exist(exc):
-                    raise exc
-                # on_exist opted to overwrite.
-                shutil.rmtree(target) if os.path.isdir(target) else os.remove(target)
-            os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-            shutil.move(src, target)
+            pairs.append((src, target))
+        restore_paths(pairs, on_exist)
 
     def purge(
         self,

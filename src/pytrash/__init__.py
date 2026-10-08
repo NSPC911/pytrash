@@ -17,6 +17,7 @@ import os
 import sys
 
 from ._type import RecycleBinLike, TrashEntry
+from ._util import RestoreConflictError
 
 if sys.platform == "win32":
     from ._windows import WindowsRecycleBin as RecycleBin
@@ -32,6 +33,7 @@ __all__ = [
     "RecycleBinLike",
     "RecycleBin",
     "TrashEntry",
+    "RestoreConflictError",
     "recycle",
     "entries",
     "restore",

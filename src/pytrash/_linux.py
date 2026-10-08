@@ -14,7 +14,7 @@ from typing import Callable, Literal, overload
 from urllib.parse import quote, unquote
 
 from ._type import TrashEntry
-from ._util import remove_path, source_path
+from ._util import remove_path, restore_paths, source_path
 
 _INFO_EXT = ".trashinfo"
 
@@ -203,8 +203,8 @@ class LinuxRecycleBin:
                 f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
             )
 
-        import shutil
-
+        pairs = []
+        metadata = {}
         for entry in items:
             info_path = entry._handle
             trash_dir = os.path.dirname(os.path.dirname(info_path))
@@ -217,22 +217,15 @@ class LinuxRecycleBin:
                 )
                 if not on_exist(exc):
                     raise exc
+                continue
             dest = entry.original_path
             if not dest:
                 raise ValueError(
                     f"cannot restore {entry.name!r}: original path unknown"
                 )
-            if os.path.lexists(dest):
-                exc = FileExistsError(
-                    f"cannot restore {entry.name!r}: {dest} already exists"
-                )
-                if not on_exist(exc):
-                    raise exc
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            if os.path.lexists(dest):
-                shutil.rmtree(dest) if os.path.isdir(dest) else os.remove(dest)
-            shutil.move(data_path, dest)
-            os.remove(info_path)
+            pairs.append((data_path, dest))
+            metadata[data_path] = info_path
+        restore_paths(pairs, on_exist, lambda src: os.remove(metadata[src]))
 
     def purge(
         self,

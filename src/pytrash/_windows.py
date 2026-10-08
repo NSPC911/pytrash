@@ -16,14 +16,13 @@ from __future__ import annotations
 import contextlib
 import ctypes
 import os
-import shutil
 import struct
 from ctypes import wintypes
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Literal, overload
 
 from ._type import TrashEntry
-from ._util import remove_path, source_path
+from ._util import remove_path, restore_paths, source_path
 
 # -- SHFileOperationW -----------------------------------------------------
 
@@ -167,6 +166,8 @@ class WindowsRecycleBin:
                 f"expected <list[TrashEntry]>, got <{type(items).__name__}>"
             )
 
+        pairs = []
+        metadata = {}
         for entry in items:
             info_path, data_path = self._paths_from_handle(entry._handle)
             if not os.path.lexists(data_path):
@@ -175,24 +176,22 @@ class WindowsRecycleBin:
                 )
                 if not on_exist(exc):
                     raise exc
+                continue
             dest = entry.original_path
             if not dest:
                 raise ValueError(
                     f"cannot restore {entry.name!r}: original path unknown"
                 )
-            if os.path.lexists(dest):
-                exc = FileExistsError(
-                    f"cannot restore {entry.name!r}: {dest} already exists"
-                )
-                if not on_exist(exc):
-                    raise exc
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            if os.path.lexists(dest):
-                shutil.rmtree(dest) if os.path.isdir(dest) else os.remove(dest)
-            shutil.move(data_path, dest)
+            pairs.append((data_path, dest))
+            metadata[data_path] = info_path
+
+        def cleanup(src: str) -> None:
+            info_path = metadata[src]
             if info_path is not None:
                 with contextlib.suppress(OSError):
                     os.remove(info_path)
+
+        restore_paths(pairs, on_exist, cleanup)
 
     def purge(
         self,
