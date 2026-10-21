@@ -1,6 +1,6 @@
 [project]
 name = "pytrash"
-version = "0.4.0"
+version = "0.5.0"
 description = "a high level api for handling recycle bins across platforms"
 readme = "README.md"
 license = "MIT"
